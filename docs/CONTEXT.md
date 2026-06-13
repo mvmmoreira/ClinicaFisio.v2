@@ -1,4 +1,4 @@
-# CONTEXT.md — ClinicFlow
+# CONTEXT.md — ClinicaFisio.v2
 
 > Este arquivo é o ponto de partida para retomada de sessões com o Tech Lead (Claude).
 > No início de cada sessão, cole o conteúdo deste arquivo no chat para restaurar o contexto completo do projeto.
@@ -7,7 +7,7 @@
 
 ## Sobre o projeto
 
-**ClinicFlow** é um sistema web de gestão para clínicas de fisioterapia, desenvolvido como projeto de portfólio por um desenvolvedor júnior recém-formado em Engenharia da Computação. O objetivo é ter um produto distribuível, acessível via web com autenticação por usuário e senha.
+**ClinicaFisio.v2** é um sistema web de gestão para clínicas de fisioterapia, desenvolvido como projeto de portfólio por um desenvolvedor júnior recém-formado em Engenharia da Computação. O objetivo é ter um produto distribuível, acessível via web com autenticação por usuário e senha.
 
 ---
 
@@ -18,7 +18,16 @@
 - O processo segue **Scrum** com sprints de 2 semanas
 - Toda sessão começa com uma **daily simulada**: o que foi feito, o que será feito, impedimentos
 - Todo código passa por **Pull Request** antes de mergear em `develop`
-- Commits seguem o padrão **Conventional Commits** (`feat:`, `fix:`, `docs:`, `test:`, etc.)
+- Commits seguem o padrão **Conventional Commits** (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`)
+
+---
+
+## Repositório
+
+- **URL:** https://github.com/mvmmoreira/ClinicaFisio.v2
+- **Branch principal:** main (protegida — somente via PR)
+- **Branch de integração:** develop
+- **Branch ativa atual:** develop
 
 ---
 
@@ -27,16 +36,31 @@
 | Camada | Tecnologia |
 |---|---|
 | Linguagem | Java 21 |
-| Framework | Spring Boot 3.x |
-| Segurança | Spring Security 6.x + JWT (jjwt 0.12.x) |
-| ORM | Spring Data JPA + Hibernate 6.x |
+| Framework | Spring Boot 4.0.7 |
+| Segurança | Spring Security 6.x + JWT |
+| ORM | Spring Data JPA + Hibernate |
 | Banco de dados | PostgreSQL 16 |
-| Migrations | Flyway 10.x |
-| Build | Maven 3.x |
-| Documentação API | Springdoc OpenAPI 2.x |
+| Migrations | Flyway |
+| Build | Maven |
+| Documentação API | Springdoc OpenAPI |
 | Testes | JUnit 5 + Mockito + Spring Boot Test |
 | Containers | Docker + Docker Compose |
-| CI/CD | GitHub Actions |
+| CI/CD | GitHub Actions (pendente) |
+| IDE | IntelliJ IDEA |
+| Versionamento | Git + GitHub |
+
+---
+
+## Dependências configuradas no pom.xml
+
+- Spring Web
+- Spring Data JPA
+- Spring Security
+- PostgreSQL Driver
+- Flyway Migration
+- Lombok
+- Validation
+- Spring Boot DevTools
 
 ---
 
@@ -45,8 +69,18 @@
 ```
 main      ← produção (protegida, só via PR)
 develop   ← integração (base de todas as features)
-feature/nome-da-task  ← uma branch por task
-hotfix/descricao      ← correção urgente
+feature/US-XX-descricao  ← uma branch por User Story
+hotfix/descricao         ← correção urgente em produção
+```
+
+### Padrão de commits
+```
+feat:     nova funcionalidade
+fix:      correção de bug
+docs:     documentação
+chore:    configuração e manutenção
+test:     testes
+refactor: refatoração sem mudar funcionalidade
 ```
 
 ---
@@ -56,10 +90,12 @@ hotfix/descricao      ← correção urgente
 ### Clínica
 - 1 unidade no MVP, arquitetura preparada para multi-tenant
 - Modelo particular no MVP, preparado para convênios futuros
+- Não é multi-tenant — uma única clínica usa o sistema
 - Serviços: **Fisioterapia** (interno + externo), **Pilates** (somente interno), **Terapias Manuais** (somente interno)
 
 ### Profissionais
-- Horário misto: base fixa definida pela clínica + flexibilidade individual
+- Horário base definido e gerenciado exclusivamente pelo Administrador
+- Profissional somente visualiza sua própria agenda — não pode alterar horários
 - Multidisciplinares: um profissional pode ter múltiplas especialidades
 - Todos habilitados para atendimento externo (desativável individualmente)
 - CREFITO obrigatório no cadastro
@@ -71,24 +107,34 @@ hotfix/descricao      ← correção urgente
 - Sistema impede conflito de horário por profissional
 - **Pilates em turma**: até 6 pacientes simultâneos por sessão
 - **Fisioterapia e Terapias Manuais**: sempre individuais (1 paciente)
-- Atendimento externo registra endereço de destino
+- Atendimento externo usa automaticamente o endereço cadastrado do paciente
 - Status possíveis: Agendado → Confirmado → Realizado | Cancelado | Falta
 - Notificações automáticas fora do MVP
 
 ### Pacientes e prontuário
 - Cadastro: nome, CPF, nascimento, sexo, telefone, e-mail, endereço
 - Prontuário completo: anamnese inicial + evolução por sessão
-- Evolução clínica **somente para fisioterapia** (não para Pilates nem Terapias Manuais)
+- Evolução clínica **somente para fisioterapia**
 - Recepcionista não acessa dados clínicos, somente dados cadastrais
 - Upload de documentos fora do MVP
 
+### Endereço
+- Tabela separada compartilhada entre Paciente e Profissional
+- Cada pessoa tem exatamente 1 endereço obrigatório
+- Vários pacientes/profissionais podem compartilhar o mesmo endereço
+
+### Planos de Pilates
+- 6 combinações: Mensal 2x, Mensal 3x, Trimestral 2x, Trimestral 3x, Semestral 2x, Semestral 3x
+- Sistema preserva histórico de preços ao atualizar valor
+- Contratação registra o preço vigente no momento
+
 ### Perfis de acesso
-| Perfil | Agendamentos | Cadastro paciente | Prontuário | Configurações |
-|---|---|---|---|---|
-| Administrador | Total | Total | Total | Total |
-| Recepcionista | Total | Somente cadastral | Sem acesso | Sem acesso |
-| Profissional | Visualiza própria | Seus pacientes | Seus pacientes | Sem acesso |
-| Paciente | — | — | — | — (futuro) |
+| Perfil | Agendamentos | Cadastro paciente | Prontuário | Agenda profissional | Configurações |
+|---|---|---|---|---|---|
+| Administrador | Total | Total | Total | Cria e edita | Total |
+| Recepcionista | Total | Somente cadastral | Sem acesso | Sem acesso | Sem acesso |
+| Profissional | Visualiza própria | Seus pacientes | Seus pacientes | Somente visualiza | Sem acesso |
+| Paciente | — | — | — | — | — (futuro) |
 
 ### Relatórios
 - Dashboard e relatórios gerenciais fora do MVP
@@ -96,81 +142,9 @@ hotfix/descricao      ← correção urgente
 
 ---
 
-## Roadmap de sprints
-
-| Sprint | Foco |
-|---|---|
-| Sprint 0 | Setup, Git flow, Docker, estrutura de pacotes, CI |
-| Sprint 1 | Autenticação JWT, usuários, perfis de acesso |
-| Sprint 2 | CRUD pacientes, prontuário, CRUD profissionais |
-| Sprint 3 | Agendamentos, conflitos, turmas, pacotes, evolução clínica |
-| Sprint 4 | Testes de integração, ajustes, deploy |
-
----
-
-## Estrutura de pacotes Java
-
-```
-com.clinicflow/
-├── config/       ← Security, OpenAPI, beans de configuração
-├── controller/   ← endpoints REST
-├── service/      ← regras de negócio
-├── repository/   ← interfaces JPA
-├── domain/       ← entidades JPA (modelos do banco)
-├── dto/          ← request/response objects
-├── exception/    ← exceções customizadas e handlers
-└── mapper/       ← conversão entidade ↔ DTO
-```
-
----
-
-## Arquivos de documentação no repositório
-
-```
-docs/
-├── project-overview.md   ← visão geral, stack, sprints, Git flow
-├── business-rules.md     ← regras de negócio completas
-└── CONTEXT.md            ← este arquivo
-```
-
----
-
-## Status atual do projeto
-
-- [x] Levantamento de requisitos concluído
-- [x] Regras de negócio documentadas
-- [x] Stack tecnológica definida
-- [x] Git flow definido
-- [ ] Repositório criado no GitHub
-- [ ] Sprint 0 iniciado
-
----
-
-## Como usar este arquivo
-
-Cole o conteúdo deste arquivo no início de cada sessão com o Tech Lead com a mensagem:
-
-> "Continuando o projeto ClinicFlow. Aqui está o contexto: [conteúdo deste arquivo]"
-
-O Tech Lead estará completamente situado em menos de 30 segundos.
-
-## Status atual do projeto (atualizado)
-
-- [x] Levantamento de requisitos concluído
-- [x] Regras de negócio documentadas
-- [x] Stack tecnológica definida
-- [x] Git flow definido
-- [x] Modelagem do banco de dados concluída
-- [ ] User Stories geradas
-- [ ] Repositório criado no GitHub
-- [ ] Sprint 0 iniciado
-
----
-
 ## Modelagem do banco de dados
 
-Diagrama ER concluído e salvo localmente como `clinicflow-er.drawio`.
-Exportar como PNG e commitar em `docs/` no Sprint 0.
+Diagrama ER concluído e salvo em `docs/Clinicav2Modelagem.drawio.png`.
 
 ### Entidades fortes
 - `Paciente`
@@ -216,17 +190,136 @@ Exportar como PNG e commitar em `docs/` no Sprint 0.
 - `NUMERIC(10,2)` para valores monetários
 - `TEXT` para campos clínicos sem limite de tamanho
 
-### Novas regras de negócio adicionadas na revisão
-| ID | Regra |
-|---|---|
-| RN-02.1 | Profissional não pode alterar horários — somente visualizar |
-| RN-03.9 | Agendamento externo usa endereço cadastrado do paciente |
-| RN-04.6 | Endereço obrigatório para pacientes e profissionais — tabela separada compartilhável |
-| RN-07.1 | Pilates possui 6 planos — combinações de duração e frequência semanal |
-| RN-07.2 | Sistema preserva histórico de preços dos planos |
-| RN-07.3 | Contratação de pacote registra o preço vigente no momento |
-| RN-07.4 | Fisioterapia e Terapias Manuais não possuem planos no MVP |
+---
 
-### Ferramentas utilizadas
-- Modelagem ER: draw.io (diagrams.net)
-- IDE: IntelliJ IDEA
+## Estrutura de pacotes Java
+
+```
+com.clinicafisio/
+├── config/       ← Security, OpenAPI, beans de configuração
+├── controller/   ← endpoints REST
+├── service/      ← regras de negócio
+├── repository/   ← interfaces JPA
+├── domain/       ← entidades JPA (modelos do banco)
+├── dto/          ← request/response objects
+├── exception/    ← exceções customizadas e handlers
+├── mapper/       ← conversão entidade ↔ DTO
+└── ClinicafisioApplication.java
+```
+
+---
+
+## Estrutura completa do projeto
+
+```
+ClinicaFisio.v2/
+├── docs/
+│   ├── CONTEXT.md
+│   ├── project-overview.md
+│   ├── business-rules.md
+│   ├── user-stories.md
+│   └── Clinicav2Modelagem.drawio.png
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/clinicafisio/
+│   │   │       ├── config/
+│   │   │       ├── controller/
+│   │   │       ├── service/
+│   │   │       ├── repository/
+│   │   │       ├── domain/
+│   │   │       ├── dto/
+│   │   │       ├── exception/
+│   │   │       ├── mapper/
+│   │   │       └── ClinicafisioApplication.java
+│   │   └── resources/
+│   │       ├── db.migration/
+│   │       ├── static/
+│   │       ├── templates/
+│   │       └── application.yaml
+│   └── test/
+├── .gitignore
+├── .gitattributes
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
+└── README.md
+```
+
+---
+
+## Ferramentas instaladas na máquina
+
+| Ferramenta | Status |
+|---|---|
+| Git Bash | ✅ Instalado |
+| IntelliJ IDEA | ✅ Instalado |
+| Java 21 | ✅ Instalado |
+| Docker Desktop | ⬜ Pendente instalação |
+
+---
+
+## Roadmap de sprints
+
+| Sprint | Foco | Status |
+|---|---|---|
+| Sprint 0 | Setup, Git flow, Docker, estrutura de pacotes | 🔄 Em andamento |
+| Sprint 1 | Autenticação JWT, usuários, perfis de acesso | ⬜ Pendente |
+| Sprint 2 | CRUD pacientes, prontuário, CRUD profissionais | ⬜ Pendente |
+| Sprint 3 | Agendamentos, conflitos, turmas, pacotes, evolução clínica | ⬜ Pendente |
+| Sprint 4 | Testes de integração, ajustes, deploy | ⬜ Pendente |
+
+---
+
+## Status atual do projeto
+
+- [x] Levantamento de requisitos concluído
+- [x] Regras de negócio documentadas
+- [x] Stack tecnológica definida
+- [x] Git flow definido
+- [x] Modelagem do banco de dados concluída
+- [x] User Stories geradas (17 stories em 3 sprints)
+- [x] Board no Trello configurado
+- [x] Repositório criado no GitHub
+- [x] Branch develop criada e branch main protegida
+- [x] Documentação commitada na develop (docs/)
+- [x] Projeto Spring Boot 4.0.7 gerado
+- [x] Estrutura de pacotes criada
+- [x] .gitignore atualizado para Java + IntelliJ + Spring
+- [ ] Docker Desktop instalado
+- [ ] docker-compose.yml criado com PostgreSQL 16
+- [ ] application.yaml configurado
+- [ ] Primeira subida da aplicação
+- [ ] Sprint 1 iniciado
+
+---
+
+## Próxima sessão — começa aqui
+
+**Passo 1** — Instalar Docker Desktop
+> Acessa docker.com/products/docker-desktop e instala para Windows
+
+**Passo 2** — Criar docker-compose.yml com PostgreSQL 16
+
+**Passo 3** — Configurar application.yaml
+
+**Passo 4** — Subir a aplicação pela primeira vez
+
+---
+
+## Ferramentas de gestão
+
+| Ferramenta | Uso | Status |
+|---|---|---|
+| Trello | Board com User Stories organizadas por sprint | ✅ Configurado |
+| GitHub Projects | Substituirá o Trello após Sprint 0 | ⬜ Pendente |
+
+---
+
+## Como usar este arquivo
+
+Cole o conteúdo deste arquivo no início de cada sessão com o Tech Lead com a mensagem:
+
+> "Continuando o projeto ClinicaFisio.v2. Aqui está o contexto: [conteúdo deste arquivo]"
+
+O Tech Lead estará completamente situado em menos de 30 segundos.
