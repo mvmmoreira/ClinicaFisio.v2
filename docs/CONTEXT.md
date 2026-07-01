@@ -233,17 +233,80 @@ ClinicaFisio.v2/
 │   │   │       ├── mapper/
 │   │   │       └── ClinicafisioApplication.java
 │   │   └── resources/
-│   │       ├── db.migration/
+│   │       ├── db/migration/     ← scripts Flyway vão aqui
 │   │       ├── static/
 │   │       ├── templates/
 │   │       └── application.yaml
 │   └── test/
+├── .env                          ← NÃO vai para o GitHub
+├── .env.example                  ← vai para o GitHub (sem valores)
 ├── .gitignore
 ├── .gitattributes
+├── docker-compose.yml
 ├── mvnw
 ├── mvnw.cmd
 ├── pom.xml
 └── README.md
+```
+
+---
+
+## Configurações importantes
+
+### docker-compose.yml
+```yaml
+services:
+  postgres:
+    image: postgres:16
+    container_name: clinicafisio.db
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+### .env (não vai para o GitHub)
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=clinicafisio
+DB_USER=clinicafisio
+DB_PASSWORD=clinicafisio123
+```
+
+### application.yaml
+```yaml
+spring:
+  application:
+    name: clinicafisio
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: 8080
 ```
 
 ---
@@ -255,7 +318,18 @@ ClinicaFisio.v2/
 | Git Bash | ✅ Instalado |
 | IntelliJ IDEA | ✅ Instalado |
 | Java 21 | ✅ Instalado |
-| Docker Desktop | ⬜ Pendente instalação |
+| Docker Desktop 29.5.3 | ✅ Instalado |
+| Docker Compose v5.1.4 | ✅ Instalado |
+
+---
+
+## Run Configuration no IntelliJ
+
+Para rodar a aplicação no IntelliJ as variáveis de ambiente precisam estar configuradas:
+
+- Abre **Run → Edit Configurations**
+- Em **Environment variables** aponta para o arquivo `.env`
+- Caminho: `C:\ClinicaFisio.v2\ClinicaFisio.v2\.env`
 
 ---
 
@@ -263,8 +337,8 @@ ClinicaFisio.v2/
 
 | Sprint | Foco | Status |
 |---|---|---|
-| Sprint 0 | Setup, Git flow, Docker, estrutura de pacotes | 🔄 Em andamento |
-| Sprint 1 | Autenticação JWT, usuários, perfis de acesso | ⬜ Pendente |
+| Sprint 0 | Setup, Git flow, Docker, estrutura de pacotes | ✅ Concluído |
+| Sprint 1 | Autenticação JWT, usuários, perfis de acesso | 🔄 Próximo |
 | Sprint 2 | CRUD pacientes, prontuário, CRUD profissionais | ⬜ Pendente |
 | Sprint 3 | Agendamentos, conflitos, turmas, pacotes, evolução clínica | ⬜ Pendente |
 | Sprint 4 | Testes de integração, ajustes, deploy | ⬜ Pendente |
@@ -286,24 +360,34 @@ ClinicaFisio.v2/
 - [x] Projeto Spring Boot 4.0.7 gerado
 - [x] Estrutura de pacotes criada
 - [x] .gitignore atualizado para Java + IntelliJ + Spring
-- [ ] Docker Desktop instalado
-- [ ] docker-compose.yml criado com PostgreSQL 16
-- [ ] application.yaml configurado
-- [ ] Primeira subida da aplicação
+- [x] Docker Desktop instalado e funcionando
+- [x] docker-compose.yml criado com PostgreSQL 16
+- [x] application.yaml configurado com variáveis de ambiente
+- [x] .env criado com credenciais locais
+- [x] .env.example criado e commitado no GitHub
+- [x] Container PostgreSQL rodando na porta 5432
+- [x] Aplicação Spring Boot subindo com sucesso na porta 8080
 - [ ] Sprint 1 iniciado
 
 ---
 
 ## Próxima sessão — começa aqui
 
-**Passo 1** — Instalar Docker Desktop
-> Acessa docker.com/products/docker-desktop e instala para Windows
+**Passo 1** — Subir o Docker e a aplicação
+```bash
+cd /c/ClinicaFisio.v2/ClinicaFisio.v2
+docker-compose up -d
+```
+Depois rodar a aplicação no IntelliJ pelo botão ▶ Play.
 
-**Passo 2** — Criar docker-compose.yml com PostgreSQL 16
+**Passo 2** — Criar branch do Sprint 1
+```bash
+git checkout -b feature/US-01-autenticacao
+```
 
-**Passo 3** — Configurar application.yaml
-
-**Passo 4** — Subir a aplicação pela primeira vez
+**Passo 3** — Criar primeira migration Flyway
+- Criar arquivo `V1__criar_tabela_usuario.sql` em `src/main/resources/db/migration`
+- Início do Sprint 1 — autenticação JWT
 
 ---
 
@@ -316,10 +400,4 @@ ClinicaFisio.v2/
 
 ---
 
-## Como usar este arquivo
 
-Cole o conteúdo deste arquivo no início de cada sessão com o Tech Lead com a mensagem:
-
-> "Continuando o projeto ClinicaFisio.v2. Aqui está o contexto: [conteúdo deste arquivo]"
-
-O Tech Lead estará completamente situado em menos de 30 segundos.
