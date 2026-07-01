@@ -3,10 +3,10 @@ spring:
     name: clinicafisio
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/clinicafisio
-    username: $[DB_USER]
-    password: $[DB_PASSWORD]
-    driver-classs-name: org.postgreesql.Driver
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -23,6 +23,6 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-  server:
-    port:8080
+server:
+  port: 8080
 
