@@ -27,7 +27,7 @@
 - **URL:** https://github.com/mvmmoreira/ClinicaFisio.v2
 - **Branch principal:** main (protegida — somente via PR)
 - **Branch de integração:** develop
-- **Branch ativa atual:** develop
+- **Branch ativa atual:** feature/US-01-autenticacao
 
 ---
 
@@ -144,11 +144,26 @@ refactor: refatoração sem mudar funcionalidade
 
 ## Modelagem do banco de dados
 
-Diagrama ER concluído e salvo em `docs/Clinicav2Modelagem.drawio.png`.
+Diagrama ER original salvo em `docs/Clinicav2Modelagem.drawio.png`.
+
+### Decisão de arquitetura — ADR-01 (Sprint 1)
+
+**Contexto:** Na modelagem inicial os campos de autenticação (email, senha) estavam diretamente na entidade `Profissional`. Administrador e Recepcionista não possuíam tabela própria.
+
+**Decisão:** Criar entidade `Usuario` separada para centralizar autenticação. `Profissional` passa a ter FK para `Usuario`.
+
+**Consequências:**
+- Administrador e Recepcionista existem apenas em `Usuario`
+- Profissional tem dados em duas tabelas: `usuario` (autenticação) e `profissional` (dados clínicos)
+- Spring Security trabalha exclusivamente com `Usuario`
+- Separação clara entre autenticação e dados de negócio
+
+---
 
 ### Entidades fortes
+- `Usuario` ← **nova — base de autenticação**
 - `Paciente`
-- `Profissional`
+- `Profissional` ← **atualizado — perdeu email/senha, ganhou usuario_id**
 - `TipoServico`
 
 ### Entidades fracas diretas
@@ -164,9 +179,35 @@ Diagrama ER concluído e salvo em `docs/Clinicav2Modelagem.drawio.png`.
 - `EvolucaoClinica` — depende de Prontuario
 - `PlanoPreco` — depende de Plano
 
+### Atributos das entidades principais atualizadas
+
+**Usuario (nova)**
+| Campo | Tipo | Descrição |
+|---|---|---|
+| id | UUID | Chave primária |
+| nome | VARCHAR(100) | Nome completo |
+| email | VARCHAR(100) | Login — único |
+| senha | VARCHAR(255) | Hash BCrypt |
+| perfil | VARCHAR(20) | ADMINISTRADOR, PROFISSIONAL, RECEPCIONISTA |
+| ativo | BOOLEAN | Soft delete |
+| data_cadastro | TIMESTAMP | Data de criação |
+
+**Profissional (atualizado)**
+| Campo | Tipo | Descrição |
+|---|---|---|
+| id | UUID | Chave primária |
+| usuario_id | UUID | FK → Usuario (1:1) |
+| crefito | VARCHAR | Registro profissional |
+| telefone | VARCHAR(11) | Contato |
+| endereco_id | UUID | FK → Endereco |
+| atende_externo | BOOLEAN | Habilitado para externo |
+| ativo | BOOLEAN | Soft delete |
+| data_cadastro | TIMESTAMP | Data de criação |
+
 ### Relacionamentos
 | Relacionamento | Tipo |
 |---|---|
+| Usuario → Profissional | 1:1 |
 | Endereco → Paciente | 1:N |
 | Endereco → Profissional | 1:N |
 | Profissional → Disponibilidade | 1:N |
@@ -185,8 +226,8 @@ Diagrama ER concluído e salvo em `docs/Clinicav2Modelagem.drawio.png`.
 - Chave primária UUID em todas as entidades
 - Soft delete com campo `ativo` em todas as entidades principais
 - Campo `senha` sempre armazenado como hash BCrypt
-- Campo `email` do Profissional é único — usado como login
-- Tipos categóricos (status, dia_semana, modalidade) viram Enum no Java
+- Campo `email` de `Usuario` é único — usado como login
+- Tipos categóricos (perfil, status, dia_semana, modalidade) viram Enum no Java
 - `NUMERIC(10,2)` para valores monetários
 - `TEXT` para campos clínicos sem limite de tamanho
 
@@ -326,7 +367,6 @@ server:
 ## Run Configuration no IntelliJ
 
 Para rodar a aplicação no IntelliJ as variáveis de ambiente precisam estar configuradas:
-
 - Abre **Run → Edit Configurations**
 - Em **Environment variables** aponta para o arquivo `.env`
 - Caminho: `C:\ClinicaFisio.v2\ClinicaFisio.v2\.env`
@@ -338,7 +378,7 @@ Para rodar a aplicação no IntelliJ as variáveis de ambiente precisam estar co
 | Sprint | Foco | Status |
 |---|---|---|
 | Sprint 0 | Setup, Git flow, Docker, estrutura de pacotes | ✅ Concluído |
-| Sprint 1 | Autenticação JWT, usuários, perfis de acesso | 🔄 Próximo |
+| Sprint 1 | Autenticação JWT, usuários, perfis de acesso | 🔄 Em andamento |
 | Sprint 2 | CRUD pacientes, prontuário, CRUD profissionais | ⬜ Pendente |
 | Sprint 3 | Agendamentos, conflitos, turmas, pacotes, evolução clínica | ⬜ Pendente |
 | Sprint 4 | Testes de integração, ajustes, deploy | ⬜ Pendente |
@@ -367,27 +407,38 @@ Para rodar a aplicação no IntelliJ as variáveis de ambiente precisam estar co
 - [x] .env.example criado e commitado no GitHub
 - [x] Container PostgreSQL rodando na porta 5432
 - [x] Aplicação Spring Boot subindo com sucesso na porta 8080
-- [ ] Sprint 1 iniciado
+- [x] Sprint 0 concluído
+- [x] Branch feature/US-01-autenticacao criada
+- [x] ADR-01 registrado — entidade Usuario separada de Profissional
+- [ ] Migration V1__criar_tabela_usuario.sql criada
+- [ ] Entidade Usuario criada em Java
+- [ ] Spring Security configurado
+- [ ] JWT implementado
+- [ ] Sprint 1 concluído
 
 ---
 
 ## Próxima sessão — começa aqui
 
-**Passo 1** — Subir o Docker e a aplicação
+**Passo 1** — Subir Docker e aplicação
 ```bash
 cd /c/ClinicaFisio.v2/ClinicaFisio.v2
 docker-compose up -d
 ```
-Depois rodar a aplicação no IntelliJ pelo botão ▶ Play.
+Rodar aplicação no IntelliJ pelo botão ▶ Play.
 
-**Passo 2** — Criar branch do Sprint 1
-```bash
-git checkout -b feature/US-01-autenticacao
+**Passo 2** — Criar primeira migration
+Criar arquivo `V1__criar_tabela_usuario.sql` em:
+```
+src/main/resources/db/migration/
 ```
 
-**Passo 3** — Criar primeira migration Flyway
-- Criar arquivo `V1__criar_tabela_usuario.sql` em `src/main/resources/db/migration`
-- Início do Sprint 1 — autenticação JWT
+**Passo 3** — Criar entidade Usuario em Java
+```
+src/main/java/com/clinicafisio/domain/Usuario.java
+```
+
+**Passo 4** — Configurar Spring Security + JWT
 
 ---
 
